@@ -1,3 +1,4 @@
+
 const recipes = [
     {
         id: 1,
@@ -65,7 +66,14 @@ const recipes = [
     },
 ];
 
+
+let currentFilter = "all";
+let currentSort = "none";
+
+
 const recipeContainer = document.querySelector("#recipe-container");
+const filterButtons = document.querySelectorAll(".filter-btn");
+const sortButtons = document.querySelectorAll(".sort-btn");
 
 const createRecipeCard = (recipe) => `
     <div class="recipe-card" data-id="${recipe.id}">
@@ -86,4 +94,85 @@ const renderRecipes = (recipesToRender) => {
         .join("");
 };
 
-renderRecipes(recipes);
+const filterByDifficulty = (recipes, difficulty) =>
+    recipes.filter(recipe => recipe.difficulty === difficulty);
+
+const filterByTime = (recipes, maxTime) =>
+    recipes.filter(recipe => recipe.time <= maxTime);
+
+const applyFilter = (recipes, filterType) => {
+    switch (filterType) {
+        case "easy":
+            return filterByDifficulty(recipes, "easy");
+        case "medium":
+            return filterByDifficulty(recipes, "medium");
+        case "hard":
+            return filterByDifficulty(recipes, "hard");
+        case "quick":
+            return filterByTime(recipes, 30);
+        default:
+            return recipes;
+    }
+};
+
+
+const sortByName = (recipes) =>
+    [...recipes].sort((a, b) => a.title.localeCompare(b.title));
+
+const sortByTime = (recipes) =>
+    [...recipes].sort((a, b) => a.time - b.time);
+
+const applySort = (recipes, sortType) => {
+    switch (sortType) {
+        case "name":
+            return sortByName(recipes);
+        case "time":
+            return sortByTime(recipes);
+        default:
+            return recipes;
+    }
+};
+
+const updateDisplay = () => {
+    let result = recipes;
+    result = applyFilter(result, currentFilter);
+    result = applySort(result, currentSort);
+    renderRecipes(result);
+};
+
+const updateActiveButtons = () => {
+    filterButtons.forEach(btn =>
+        btn.classList.toggle("active", btn.dataset.filter === currentFilter)
+    );
+
+    sortButtons.forEach(btn =>
+        btn.classList.toggle("active", btn.dataset.sort === currentSort)
+    );
+};
+
+
+const handleFilterClick = (e) => {
+    currentFilter = e.target.dataset.filter;
+    updateActiveButtons();
+    updateDisplay();
+};
+
+const handleSortClick = (e) => {
+    currentSort = e.target.dataset.sort;
+    updateActiveButtons();
+    updateDisplay();
+};
+
+const setupEventListeners = () => {
+    filterButtons.forEach(btn =>
+        btn.addEventListener("click", handleFilterClick)
+    );
+
+    sortButtons.forEach(btn =>
+        btn.addEventListener("click", handleSortClick)
+    );
+};
+
+
+setupEventListeners();
+updateDisplay();

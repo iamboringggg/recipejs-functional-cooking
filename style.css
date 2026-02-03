@@ -95,3 +95,39 @@ main {
     background-color: #f8d7da;
     color: #721c24;
 }
+
+.controls {
+    background: white;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.button-group {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn,
+.sort-btn {
+    padding: 0.6rem 1.2rem;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn.active,
+.sort-btn.active {
+    background: #667eea;
+    color: white;
+}
+
+.filter-btn:hover,
+.sort-btn:hover {
+    background: #f0f2ff;
+}
