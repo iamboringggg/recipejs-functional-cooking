@@ -10,10 +10,27 @@
         <header>
             <h1>🍳 RecipeJS</h1>
             <p>Your Functional Cooking Companion</p>
+
+            <!-- ✅ NEW: Search Bar -->
+            <div class="search-container">
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search recipes or ingredients..."
+                    autocomplete="off"
+                />
+                <button
+                    id="clear-search"
+                    class="clear-btn"
+                    style="display: none"
+                >
+                    ✕
+                </button>
+            </div>
         </header>
 
         <main>
-            <!-- Controls MUST be OUTSIDE recipe-container -->
+            <!-- Controls -->
             <section class="controls">
                 <div class="filter-group">
                     <h3>Filter by Difficulty:</h3>
@@ -32,6 +49,11 @@
                         </button>
                         <button class="filter-btn" data-filter="quick">
                             Quick Recipes (&lt; 30 min)
+                        </button>
+
+                        <!-- ✅ NEW: Favorites Filter -->
+                        <button class="filter-btn" data-filter="favorites">
+                            ❤️ Favorites Only
                         </button>
                     </div>
                 </div>
@@ -52,9 +74,14 @@
                 </div>
             </section>
 
-            <!-- Recipe container must be EMPTY -->
+            <!-- ✅ NEW: Recipe Counter -->
+            <div class="recipe-info">
+                <p id="recipe-count">Showing 8 of 8 recipes</p>
+            </div>
+
+            <!-- Recipe container (still EMPTY) -->
             <div id="recipe-container">
-                <!-- Recipe cards will be rendered here by JavaScript -->
+                <!-- Cards rendered by JS -->
             </div>
         </main>
 

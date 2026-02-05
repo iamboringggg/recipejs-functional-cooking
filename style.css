@@ -173,3 +173,93 @@ main {
 .toggle-btn:hover {
     background-color: #5563d6;
 }
+
+/* =========================
+   SEARCH BAR
+========================= */
+.search-container {
+    max-width: 500px;
+    margin: 1.5rem auto 0;
+    position: relative;
+}
+
+#search-input {
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    border-radius: 10px;
+    border: none;
+    font-size: 1rem;
+}
+
+#search-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+}
+
+.clear-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #666;
+}
+
+/* =========================
+   RECIPE COUNTER
+========================= */
+.recipe-info {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    color: #555;
+}
+
+/* =========================
+   FAVORITE BUTTON
+========================= */
+.recipe-card {
+    position: relative;
+}
+
+.favorite-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.favorite-btn:hover {
+    transform: scale(1.2);
+}
+
+/* =========================
+   RESPONSIVE POLISH
+========================= */
+@media (max-width: 768px) {
+    .recipe-card {
+        width: 100%;
+    }
+
+    .search-container {
+        margin: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .button-group {
+        flex-direction: column;
+    }
+
+    .filter-btn,
+    .sort-btn {
+        width: 100%;
+    }
+}

@@ -1,6 +1,8 @@
 const RecipeApp = (() => {
+  "use strict";
+
   // ============================================
-  // DATA (extended with ingredients & steps)
+  // DATA
   // ============================================
   const recipes = [
     {
@@ -11,13 +13,7 @@ const RecipeApp = (() => {
       description:
         "A creamy Italian pasta dish made with eggs, cheese, pancetta, and black pepper.",
       category: "pasta",
-      ingredients: [
-        "Spaghetti",
-        "Eggs",
-        "Parmesan cheese",
-        "Pancetta",
-        "Black pepper",
-      ],
+      ingredients: ["Spaghetti", "Eggs", "Parmesan", "Pancetta", "Pepper"],
       steps: [
         "Boil pasta",
         {
@@ -88,7 +84,7 @@ const RecipeApp = (() => {
       description: "Beef fillet wrapped in puff pastry.",
       category: "meat",
       ingredients: ["Beef", "Mushrooms", "Puff pastry", "Eggs"],
-      steps: ["Sear beef", "Prepare mushroom duxelles", "Wrap and bake"],
+      steps: ["Sear beef", "Prepare duxelles", "Wrap and bake"],
     },
     {
       id: 6,
@@ -97,7 +93,7 @@ const RecipeApp = (() => {
       difficulty: "easy",
       description: "Quick stir-fried vegetables.",
       category: "vegetarian",
-      ingredients: ["Mixed vegetables", "Soy sauce", "Oil"],
+      ingredients: ["Vegetables", "Soy sauce", "Oil"],
       steps: ["Heat oil", "Add vegetables", "Stir fry and serve"],
     },
     {
@@ -127,6 +123,9 @@ const RecipeApp = (() => {
   // ============================================
   let currentFilter = "all";
   let currentSort = "none";
+  let searchQuery = "";
+  let favorites = JSON.parse(localStorage.getItem("recipeFavorites")) || [];
+  let debounceTimer;
 
   // ============================================
   // DOM REFERENCES
@@ -134,13 +133,16 @@ const RecipeApp = (() => {
   const recipeContainer = document.querySelector("#recipe-container");
   const filterButtons = document.querySelectorAll(".filter-btn");
   const sortButtons = document.querySelectorAll(".sort-btn");
+  const searchInput = document.querySelector("#search-input");
+  const clearSearchBtn = document.querySelector("#clear-search");
+  const recipeCountDisplay = document.querySelector("#recipe-count");
 
   // ============================================
-  // RECURSION (Steps rendering)
+  // RECURSION (Steps)
   // ============================================
   const renderSteps = (steps, level = 0) => {
-    const listClass = level === 0 ? "steps-list" : "substeps-list";
-    let html = `<ol class="${listClass}">`;
+    const cls = level === 0 ? "steps-list" : "substeps-list";
+    let html = `<ol class="${cls}">`;
 
     steps.forEach((step) => {
       if (typeof step === "string") {
@@ -148,167 +150,194 @@ const RecipeApp = (() => {
       } else {
         html += `<li>${step.text}`;
         if (step.substeps) {
-          html += renderSteps(step.substeps, level + 1); // recursion
+          html += renderSteps(step.substeps, level + 1);
         }
         html += `</li>`;
       }
     });
 
-    html += `</ol>`;
-    return html;
-  };
-
-  const createStepsHTML = (steps) => {
-    if (!steps || steps.length === 0) {
-      return "<p>No steps available</p>";
-    }
-    return renderSteps(steps);
+    return html + "</ol>";
   };
 
   // ============================================
   // CARD TEMPLATE
   // ============================================
-  const createRecipeCard = (recipe) => `
-    <div class="recipe-card" data-id="${recipe.id}">
-      <h3>${recipe.title}</h3>
+  const createRecipeCard = (recipe) => {
+    const isFav = favorites.includes(recipe.id);
+    return `
+      <div class="recipe-card" data-id="${recipe.id}">
+        <button class="favorite-btn" data-id="${recipe.id}">
+          ${isFav ? "❤️" : "🤍"}
+        </button>
 
-      <div class="recipe-meta">
-        <span>⏱️ ${recipe.time} min</span>
-        <span class="difficulty ${recipe.difficulty}">
-          ${recipe.difficulty}
-        </span>
+        <h3>${recipe.title}</h3>
+
+        <div class="recipe-meta">
+          <span>⏱️ ${recipe.time} min</span>
+          <span class="difficulty ${recipe.difficulty}">
+            ${recipe.difficulty}
+          </span>
+        </div>
+
+        <p>${recipe.description}</p>
+
+        <button class="toggle-btn" data-toggle="steps" data-id="${recipe.id}">
+          📋 Show Steps
+        </button>
+        <button class="toggle-btn" data-toggle="ingredients" data-id="${recipe.id}">
+          🥗 Show Ingredients
+        </button>
+
+        <div class="steps-container" data-id="${recipe.id}">
+          ${renderSteps(recipe.steps)}
+        </div>
+
+        <div class="ingredients-container" data-id="${recipe.id}">
+          <ul>${recipe.ingredients.map((i) => `<li>${i}</li>`).join("")}</ul>
+        </div>
       </div>
-
-      <p>${recipe.description}</p>
-
-      <button class="toggle-btn" data-toggle="steps" data-id="${recipe.id}">
-        📋 Show Steps
-      </button>
-
-      <button class="toggle-btn" data-toggle="ingredients" data-id="${recipe.id}">
-        🥗 Show Ingredients
-      </button>
-
-      <div class="steps-container" data-id="${recipe.id}">
-        ${createStepsHTML(recipe.steps)}
-      </div>
-
-      <div class="ingredients-container" data-id="${recipe.id}">
-        <ul>
-          ${recipe.ingredients.map((i) => `<li>${i}</li>`).join("")}
-        </ul>
-      </div>
-    </div>
-  `;
+    `;
+  };
 
   const renderRecipes = (list) => {
     recipeContainer.innerHTML = list.map(createRecipeCard).join("");
   };
 
   // ============================================
-  // FILTER & SORT (from Part 2)
+  // FILTERS
   // ============================================
-  const filterByDifficulty = (list, diff) =>
-    list.filter((r) => r.difficulty === diff);
+  const filterBySearch = (list) => {
+    if (!searchQuery.trim()) return list;
+    const q = searchQuery.toLowerCase();
+    return list.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.description.toLowerCase().includes(q) ||
+        r.ingredients.some((i) => i.toLowerCase().includes(q)),
+    );
+  };
 
-  const filterByTime = (list, max) => list.filter((r) => r.time <= max);
+  const filterFavorites = (list) =>
+    list.filter((r) => favorites.includes(r.id));
 
   const applyFilter = (list) => {
     switch (currentFilter) {
       case "easy":
-        return filterByDifficulty(list, "easy");
+        return list.filter((r) => r.difficulty === "easy");
       case "medium":
-        return filterByDifficulty(list, "medium");
+        return list.filter((r) => r.difficulty === "medium");
       case "hard":
-        return filterByDifficulty(list, "hard");
+        return list.filter((r) => r.difficulty === "hard");
       case "quick":
-        return filterByTime(list, 30);
+        return list.filter((r) => r.time <= 30);
+      case "favorites":
+        return filterFavorites(list);
       default:
         return list;
     }
   };
 
-  const sortByName = (list) =>
-    [...list].sort((a, b) => a.title.localeCompare(b.title));
-
-  const sortByTime = (list) => [...list].sort((a, b) => a.time - b.time);
-
+  // ============================================
+  // SORTS
+  // ============================================
   const applySort = (list) => {
     switch (currentSort) {
       case "name":
-        return sortByName(list);
+        return [...list].sort((a, b) => a.title.localeCompare(b.title));
       case "time":
-        return sortByTime(list);
+        return [...list].sort((a, b) => a.time - b.time);
       default:
         return list;
     }
   };
 
+  // ============================================
+  // DISPLAY
+  // ============================================
   const updateDisplay = () => {
     let result = recipes;
+    result = filterBySearch(result);
     result = applyFilter(result);
     result = applySort(result);
+
     renderRecipes(result);
+
+    if (recipeCountDisplay) {
+      recipeCountDisplay.textContent = `Showing ${result.length} of ${recipes.length} recipes`;
+    }
+  };
+
+  // ============================================
+  // FAVORITES
+  // ============================================
+  const toggleFavorite = (id) => {
+    id = Number(id);
+    favorites = favorites.includes(id)
+      ? favorites.filter((f) => f !== id)
+      : [...favorites, id];
+
+    localStorage.setItem("recipeFavorites", JSON.stringify(favorites));
+    updateDisplay();
   };
 
   // ============================================
   // EVENT HANDLERS
   // ============================================
-  const handleFilterClick = (e) => {
-    currentFilter = e.target.dataset.filter;
-    updateActiveButtons();
-    updateDisplay();
-  };
-
-  const handleSortClick = (e) => {
-    currentSort = e.target.dataset.sort;
-    updateActiveButtons();
-    updateDisplay();
-  };
-
   const handleToggleClick = (e) => {
-    if (!e.target.classList.contains("toggle-btn")) return;
+    if (e.target.classList.contains("toggle-btn")) {
+      const id = e.target.dataset.id;
+      const type = e.target.dataset.toggle;
+      const box = document.querySelector(`.${type}-container[data-id="${id}"]`);
+      box.classList.toggle("visible");
+    }
 
-    const id = e.target.dataset.id;
-    const type = e.target.dataset.toggle;
-
-    const container = document.querySelector(
-      `.${type}-container[data-id="${id}"]`,
-    );
-
-    container.classList.toggle("visible");
-
-    e.target.textContent = container.classList.contains("visible")
-      ? `Hide ${type}`
-      : `Show ${type}`;
+    if (e.target.classList.contains("favorite-btn")) {
+      toggleFavorite(e.target.dataset.id);
+    }
   };
 
-  const updateActiveButtons = () => {
-    filterButtons.forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.filter === currentFilter),
-    );
-    sortButtons.forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.sort === currentSort),
-    );
+  const handleSearch = (e) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      searchQuery = e.target.value;
+      updateDisplay();
+    }, 300);
+
+    clearSearchBtn.style.display = e.target.value ? "block" : "none";
   };
 
-  const setupEventListeners = () => {
-    filterButtons.forEach((btn) =>
-      btn.addEventListener("click", handleFilterClick),
-    );
-    sortButtons.forEach((btn) =>
-      btn.addEventListener("click", handleSortClick),
-    );
-    recipeContainer.addEventListener("click", handleToggleClick);
+  const clearSearch = () => {
+    searchQuery = "";
+    searchInput.value = "";
+    clearSearchBtn.style.display = "none";
+    updateDisplay();
   };
 
   // ============================================
   // INIT
   // ============================================
   const init = () => {
-    setupEventListeners();
+    filterButtons.forEach((b) =>
+      b.addEventListener("click", (e) => {
+        currentFilter = e.target.dataset.filter;
+        updateDisplay();
+      }),
+    );
+
+    sortButtons.forEach((b) =>
+      b.addEventListener("click", (e) => {
+        currentSort = e.target.dataset.sort;
+        updateDisplay();
+      }),
+    );
+
+    recipeContainer.addEventListener("click", handleToggleClick);
+
+    if (searchInput) searchInput.addEventListener("input", handleSearch);
+    if (clearSearchBtn) clearSearchBtn.addEventListener("click", clearSearch);
+
     updateDisplay();
-    console.log("RecipeApp initialized");
+    console.log("🍳 RecipeApp ready!");
   };
 
   return { init };
